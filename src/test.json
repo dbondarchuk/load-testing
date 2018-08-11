@@ -1,0 +1,42 @@
+{
+    "id": "kfjfd",
+    "loopCount": 5,
+    "usersCount": 20,
+    "rampup": 2,
+    "variables": {
+        "testein": {
+            "site": "portal.testein",
+            "domain": "com"
+        }
+    },
+    "actions": [
+        {
+            "http": {
+                "method": "get",
+                "endPoint": "http://$(testein.site).$(testein.domain)/api/projects",
+                "cookies": {
+                    "auth": "Y2VvQHRlc3RlaW4uY29tOjhhMzBmZDY2NWYxNjRmYWE5MWMyMDEwOTc2NDE5MWI4NjMyMDNmMDc1MzFlYzI4ODlhZDMxYTdiOTYwODQ1MDc%3D"
+                },
+                "headers": {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
+                "name": "Get projects",
+                "variableName": "projects"
+            }
+        },
+        {
+            "http": {
+                "method": "get",
+                "endPoint": "http://$(testein.site).$(testein.domain)/api/projects/$(projects.Body[0].id)",
+                "cookies": {
+                    "auth": "Y2VvQHRlc3RlaW4uY29tOjhhMzBmZDY2NWYxNjRmYWE5MWMyMDEwOTc2NDE5MWI4NjMyMDNmMDc1MzFlYzI4ODlhZDMxYTdiOTYwODQ1MDc%3D"
+                },
+                "headers": {
+                    "Content-Type": "application/json; charset=utf-8"
+                },
+                "name": "Get project",
+                "variableName": "project"
+            }
+        }
+    ]
+}
