@@ -12,6 +12,6 @@ func (s SleepAction) Execute(resultsChannel chan HttpReqResult, variables map[st
 	time.Sleep(time.Duration(s.TimeOut) * time.Second)
 }
 
-func NewSleepAction(a map[interface{}]interface{}) SleepAction {
+func NewSleepAction(a map[string]interface{}) SleepAction {
 	return SleepAction{a["timeOut"].(int)}
 }

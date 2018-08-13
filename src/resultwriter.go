@@ -28,12 +28,12 @@ func OpenResultsFile(fileName string) {
 		}
 	}
 	w = bufio.NewWriter(f)
-	_, err = w.WriteString(string("var logdata = '"))
+	_, err = w.WriteString(string("["))
 }
 
 func CloseResultsFile() {
 	if opened {
-		_, err = w.WriteString(string("';"))
+		_, err = w.WriteString(string("]"))
 		w.Flush()
 		f.Close()
 	}
@@ -46,7 +46,7 @@ func writeResult(httpResult *HttpReqResult) {
 		panic(err)
 	}
 	_, err = w.WriteString(string(jsonString))
-	_, err = w.WriteString("|")
+	_, err = w.WriteString(",")
 
 	if err != nil {
 		panic(err)

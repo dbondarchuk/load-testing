@@ -39,7 +39,7 @@ func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, var
 		if err != nil {
 			//log.Fatal(err)
 			log.Printf("Reading HTTP response failed: %s\n", err)
-			httpReqResult := buildHttpResult(0, resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
+			httpReqResult := buildHttpResult(0, req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
 
 			resultsChannel <- httpReqResult
 		} else {
@@ -54,7 +54,7 @@ func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, var
 				}
 			}
 
-			httpReqResult := buildHttpResult(len(responseBody), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
+			httpReqResult := buildHttpResult(len(responseBody), req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
 
 			processResult(httpAction, resp, variables, responseBody)
 
@@ -63,11 +63,12 @@ func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, var
 	}
 }
 
-func buildHttpResult(contentLength int, status int, elapsed int64, name string) HttpReqResult {
+func buildHttpResult(contentLength int, url string, status int, elapsed int64, name string) HttpReqResult {
 	httpReqResult := HttpReqResult{
 		"HTTP",
 		elapsed,
 		contentLength,
+		url,
 		status,
 		name,
 		time.Since(SimulationStart).Nanoseconds(),
@@ -85,9 +86,11 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) *
 	} else if httpAction.BodyType == "dataform" {
 		form := url.Values{}
 
-		// Add form data
-		for key, value := range httpAction.FormData {
-			form.Add(key, SubstParams(variables, value))
+		if httpAction.FormData != nil {
+			// Add form data
+			for key, value := range httpAction.FormData {
+				form.Add(key, SubstParams(variables, value.(string)))
+			}
 		}
 
 		reader := strings.NewReader(form.Encode())
@@ -96,24 +99,26 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) *
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 
-		// Add form data
-		for key, value := range httpAction.FormData {
-			err2 := writer.WriteField(key, SubstParams(variables, value))
-			if err2 != nil {
-				log.Fatal(err2)
+		if httpAction.FormData != nil {
+			// Add form data
+			for key, value := range httpAction.FormData {
+				err2 := writer.WriteField(key, SubstParams(variables, value.(string)))
+				if err2 != nil {
+					log.Fatal(err2)
+				}
 			}
 		}
 
-		if len(httpAction.Files) > 0 {
+		if httpAction.Files != nil && len(httpAction.Files) > 0 {
 			for key, path := range httpAction.Files {
-				file, err2 := os.Open(path)
+				file, err2 := os.Open(path.(string))
 				if err2 != nil {
 					log.Fatal(err2)
 				}
 
 				defer file.Close()
 
-				part, err2 := writer.CreateFormFile(key, filepath.Base(path))
+				part, err2 := writer.CreateFormFile(key, filepath.Base(path.(string)))
 				if err2 != nil {
 					log.Fatal(err2)
 				}
@@ -128,30 +133,36 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) *
 		}
 
 		req, err = http.NewRequest(httpAction.Method, SubstParams(variables, httpAction.Endpoint), body)
+	} else {
+		req, err = http.NewRequest(httpAction.Method, SubstParams(variables, httpAction.Endpoint), nil)
 	}
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Add headers
-	for key, value := range httpAction.Headers {
-		req.Header.Add(key, SubstParams(variables, value))
+	if httpAction.Headers != nil {
+		// Add headers
+		for key, value := range httpAction.Headers {
+			req.Header.Add(key, SubstParams(variables, value.(string)))
+		}
 	}
 
-	// Add cookies
-	for key, value := range httpAction.Cookies {
-		k := key
-		if strings.HasPrefix(key, "____") {
-			k = key[4:len(key)]
-		}
+	if httpAction.Cookies != nil {
+		// Add cookies
+		for key, value := range httpAction.Cookies {
+			k := key
+			if strings.HasPrefix(key, "____") {
+				k = key[4:len(key)]
+			}
 
-		cookie := http.Cookie{
-			Name:  k,
-			Value: SubstParams(variables, value),
-		}
+			cookie := http.Cookie{
+				Name:  k,
+				Value: SubstParams(variables, value.(string)),
+			}
 
-		req.AddCookie(&cookie)
+			req.AddCookie(&cookie)
+		}
 	}
 
 	return req
@@ -202,10 +213,12 @@ func processResult(httpAction HttpAction, response *http.Response, variables map
 		body = obj
 	}
 
-	err = xml.Unmarshal(responseBody, body)
-
 	if err != nil {
-		body = string(responseBody[:])
+		err = xml.Unmarshal(responseBody, body)
+
+		if err != nil {
+			body = string(responseBody[:])
+		}
 	}
 
 	headers := make(map[string]string)

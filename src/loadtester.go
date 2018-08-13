@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/jinzhu/copier"
 )
 
 var SimulationStart time.Time
@@ -39,11 +37,10 @@ func main() {
 		return
 	}
 
-	OpenResultsFile(dir + "/" + t.Id + ".log")
+	OpenResultsFile(dir + "/" + t.Id + ".json")
 	spawnUsers(&t, actions)
 
 	fmt.Printf("Done in %v\n", time.Since(SimulationStart))
-	fmt.Println("Building reports, please wait...")
 	CloseResultsFile()
 }
 
@@ -84,7 +81,7 @@ func launchActions(t *TestDef, resultsChannel chan HttpReqResult, wg *sync.WaitG
 	for i := 0; i < t.Iterations; i++ {
 
 		// Make sure the variables is cleared before each iteration - except for the UID which stays
-		resetVariablesAndUID(t, UID, variables)
+		resetVariablesAndUID(t.Variables, UID, variables)
 
 		// Iterate over the actions. Note the use of the command-pattern like Execute method on the Action interface
 		for _, action := range actions {
@@ -96,8 +93,11 @@ func launchActions(t *TestDef, resultsChannel chan HttpReqResult, wg *sync.WaitG
 	wg.Done()
 }
 
-func resetVariablesAndUID(t *TestDef, UID string, variables map[string]interface{}) {
-	copier.Copy(&variables, &t.Variables)
+func resetVariablesAndUID(original map[string]interface{}, UID string, variables map[string]interface{}) {
+	b, e := json.Marshal(original)
+	e = json.Unmarshal(b, &variables)
 
-	variables["UID"] = UID
+	if e == nil {
+		variables["UID"] = UID
+	}
 }

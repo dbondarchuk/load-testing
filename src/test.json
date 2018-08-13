@@ -1,11 +1,11 @@
 {
     "id": "kfjfd",
     "loopCount": 5,
-    "usersCount": 20,
-    "rampup": 2,
+    "usersCount": 2000,
+    "rampup": 20,
     "variables": {
         "testein": {
-            "site": "portal.testein",
+            "site": "localhost:62441",
             "domain": "com"
         }
     },
@@ -13,9 +13,9 @@
         {
             "http": {
                 "method": "get",
-                "endPoint": "http://$(testein.site).$(testein.domain)/api/projects",
+                "endPoint": "http://$(testein.site)/api/projects",
                 "cookies": {
-                    "auth": "Y2VvQHRlc3RlaW4uY29tOjhhMzBmZDY2NWYxNjRmYWE5MWMyMDEwOTc2NDE5MWI4NjMyMDNmMDc1MzFlYzI4ODlhZDMxYTdiOTYwODQ1MDc%3D"
+                    "auth": "Y2VvQHRlc3RlaW4uY29tOjg5NDY2NTI3YzQ5MWY0YjljZGNiZmZjNGIzMjAyMjM5ZmE0MTg1ZTg2OTViNDEwN2I0N2U3MmQzYzVlMzhiOGU%3D"
                 },
                 "headers": {
                     "Content-Type": "application/json; charset=utf-8"
@@ -27,9 +27,9 @@
         {
             "http": {
                 "method": "get",
-                "endPoint": "http://$(testein.site).$(testein.domain)/api/projects/$(projects.Body[0].id)",
+                "endPoint": "http://$(testein.site)/api/projects/$(projects.Body[0].id)",
                 "cookies": {
-                    "auth": "Y2VvQHRlc3RlaW4uY29tOjhhMzBmZDY2NWYxNjRmYWE5MWMyMDEwOTc2NDE5MWI4NjMyMDNmMDc1MzFlYzI4ODlhZDMxYTdiOTYwODQ1MDc%3D"
+                    "auth": "Y2VvQHRlc3RlaW4uY29tOjg5NDY2NTI3YzQ5MWY0YjljZGNiZmZjNGIzMjAyMjM5ZmE0MTg1ZTg2OTViNDEwN2I0N2U3MmQzYzVlMzhiOGU%3D"
                 },
                 "headers": {
                     "Content-Type": "application/json; charset=utf-8"

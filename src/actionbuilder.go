@@ -10,7 +10,7 @@ func buildActionList(t *TestDef) ([]Action, bool) {
 	for _, element := range t.Actions {
 		for key, value := range element {
 			var action Action
-			actionMap := value.(map[interface{}]interface{})
+			actionMap := value
 			switch key {
 			case "sleep":
 				action = NewSleepAction(actionMap)

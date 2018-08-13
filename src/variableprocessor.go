@@ -1,9 +1,10 @@
 package main
 
 import (
+	"log"
 	"regexp"
 	"strings"
-	"log"
+
 	"github.com/robertkrimen/otto"
 )
 
