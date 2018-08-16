@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 )
 
 func buildActionList(t *TestDef) ([]Action, bool) {
@@ -11,12 +12,21 @@ func buildActionList(t *TestDef) ([]Action, bool) {
 		for key, value := range element {
 			var action Action
 			actionMap := value
-			switch key {
+			switch strings.ToLower(key) {
 			case "sleep":
 				action = NewSleepAction(actionMap)
 				break
 			case "http":
 				action = NewHttpAction(actionMap)
+				break
+			case "comparenumbervalues":
+				action = NewCompareNumberValuesAction(actionMap)
+				break
+			case "comparevalues":
+				action = NewCompareValuesAction(actionMap)
+				break
+			case "comparevariable":
+				action = NewCompareVariableAction(actionMap)
 				break
 			default:
 				valid = false

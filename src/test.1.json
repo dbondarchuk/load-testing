@@ -1,8 +1,8 @@
 {
     "id": "kfjfd",
     "loopCount": 5,
-    "usersCount": 10000,
-    "rampup": 60,
+    "usersCount": 50000,
+    "rampup": 160,
     "variables": {
         "testein": {
             "site": "portal.testein",
@@ -22,13 +22,46 @@
             }
         },
         {
+            "comparenumbervalues": {
+                "method": "eq",
+                "value": "$(posts.StatusCode)",
+                "to": "200"
+            }
+        },
+        {
+            "comparevalues": {
+                "value": "$(posts.Body[0].title)",
+                "to": "equals|true|sunt aut facere Repellat provident occaecati excepturi optio reprehenderit"
+            }
+        },
+        {
+            "comparevalues": {
+                "value": "$(posts.Body[2].title)",
+                "to": "contains|false|ea molestias quasi"
+            }
+        },
+        {
             "http": {
                 "method": "GET",
                 "name": "b",
                 "endPoint": "https://jsonplaceholder.typicode.com/posts/$(posts.Body[1].id)",     
+                "variableName": "post",
                 "headers": {
                     "Content-Type": "application/json; charset=utf-8"
                 }           
+            }
+        },
+        {
+            "comparenumbervalues": {
+                "method": "eq",
+                "value": "$(post.StatusCode)",
+                "to": "200"
+            }
+        },
+        {
+            "comparevariable": {
+                "variableName": "post.Body.title",
+                "to": "startswith|true|Qui est esse"
             }
         }
     ]

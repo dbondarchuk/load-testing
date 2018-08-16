@@ -17,8 +17,8 @@ type HttpAction struct {
 }
 
 // Execute action
-func (h HttpAction) Execute(resultsChannel chan HttpReqResult, variables map[string]interface{}) {
-	DoHttpRequest(h, resultsChannel, variables)
+func (h HttpAction) Execute(resultsChannel chan HttpReqResult, variables map[string]interface{}) error {
+	return DoHttpRequest(h, resultsChannel, variables)
 }
 
 // NewHttpAction - creates new HttpAction
@@ -28,17 +28,14 @@ func NewHttpAction(a map[string]interface{}) HttpAction {
 		storeCookie = a["storeCookie"].(string)
 	}
 
-	bodyType, ok := a["bodyType"].(string)
-	rawData, ok := a["rawData"].(string)
-	variableName, ok := a["variableName"].(string)
-	timeOut, ok := a["timeOut"].(int)
-	formData, ok := a["formData"].(map[string]interface{})
-	files, ok := a["files"].(map[string]interface{})
-	headers, ok := a["headers"].(map[string]interface{})
-	cookies, ok := a["cookies"].(map[string]interface{})
-
-	if !ok {
-	}
+	bodyType, _ := a["bodyType"].(string)
+	rawData, _ := a["rawData"].(string)
+	variableName, _ := a["variableName"].(string)
+	timeOut, _ := a["timeOut"].(int)
+	formData, _ := a["formData"].(map[string]interface{})
+	files, _ := a["files"].(map[string]interface{})
+	headers, _ := a["headers"].(map[string]interface{})
+	cookies, _ := a["cookies"].(map[string]interface{})
 
 	httpAction := HttpAction{
 		a["method"].(string),

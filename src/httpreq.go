@@ -22,8 +22,11 @@ import (
 )
 
 // DoHttpRequest - Accepts a Httpaction and a one-way channel to write the results to.
-func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, variables map[string]interface{}) {
-	req := buildHttpRequest(httpAction, variables)
+func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, variables map[string]interface{}) error {
+	req, err := buildHttpRequest(httpAction, variables)
+	if err != nil {
+		return nil
+	}
 
 	start := time.Now()
 	var DefaultTransport http.RoundTripper = &http.Transport{
@@ -32,35 +35,37 @@ func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, var
 	resp, err := DefaultTransport.RoundTrip(req)
 
 	if err != nil {
-		log.Printf("HTTP request failed: %s", err)
+		return err
+	}
+
+	elapsed := time.Since(start)
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		//log.Fatal(err)
+		log.Printf("Reading HTTP response failed: %s\n", err)
+		httpReqResult := buildHttpResult(0, req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
+
+		resultsChannel <- httpReqResult
 	} else {
-		elapsed := time.Since(start)
-		responseBody, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			//log.Fatal(err)
-			log.Printf("Reading HTTP response failed: %s\n", err)
-			httpReqResult := buildHttpResult(0, req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
+		defer resp.Body.Close()
 
-			resultsChannel <- httpReqResult
-		} else {
-			defer resp.Body.Close()
+		if httpAction.StoreCookie != "" {
+			for _, cookie := range resp.Cookies() {
 
-			if httpAction.StoreCookie != "" {
-				for _, cookie := range resp.Cookies() {
-
-					if cookie.Name == httpAction.StoreCookie {
-						variables["____"+cookie.Name] = cookie.Value
-					}
+				if cookie.Name == httpAction.StoreCookie {
+					variables["____"+cookie.Name] = cookie.Value
 				}
 			}
-
-			httpReqResult := buildHttpResult(len(responseBody), req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
-
-			processResult(httpAction, resp, variables, responseBody)
-
-			resultsChannel <- httpReqResult
 		}
+
+		httpReqResult := buildHttpResult(len(responseBody), req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
+
+		processResult(httpAction, resp, variables, responseBody)
+
+		resultsChannel <- httpReqResult
 	}
+
+	return nil
 }
 
 func buildHttpResult(contentLength int, url string, status int, elapsed int64, name string) HttpReqResult {
@@ -76,7 +81,7 @@ func buildHttpResult(contentLength int, url string, status int, elapsed int64, n
 	return httpReqResult
 }
 
-func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) *http.Request {
+func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (*http.Request, error) {
 	var req *http.Request
 	var err error
 
@@ -104,7 +109,7 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) *
 			for key, value := range httpAction.FormData {
 				err2 := writer.WriteField(key, SubstParams(variables, value.(string)))
 				if err2 != nil {
-					log.Fatal(err2)
+					return nil, err2
 				}
 			}
 		}
@@ -113,21 +118,21 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) *
 			for key, path := range httpAction.Files {
 				file, err2 := os.Open(path.(string))
 				if err2 != nil {
-					log.Fatal(err2)
+					return nil, err2
 				}
 
 				defer file.Close()
 
 				part, err2 := writer.CreateFormFile(key, filepath.Base(path.(string)))
 				if err2 != nil {
-					log.Fatal(err2)
+					return nil, err2
 				}
 
 				_, err2 = io.Copy(part, file)
 				err2 = writer.Close()
 
 				if err2 != nil {
-					log.Fatal(err2)
+					return nil, err2
 				}
 			}
 		}
@@ -138,7 +143,7 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) *
 	}
 
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	if httpAction.Headers != nil {
@@ -165,7 +170,7 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) *
 		}
 	}
 
-	return req
+	return req, err
 }
 
 func processResult(httpAction HttpAction, response *http.Response, variables map[string]interface{}, responseBody []byte) {
