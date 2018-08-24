@@ -1,17 +1,20 @@
 {
     "id": "kfjfd",
     "loopCount": 5,
-    "usersCount": 50000,
-    "rampup": 160,
+    "usersCount": 1000,
+    "rampup": 10,
     "variables": {
         "testein": {
             "site": "portal.testein",
             "domain": "com"
         }
     },
-    "actions": [
+    "steps": [
         {
-            "http": {
+            "typename": "restrequest",
+            "name": "Get all posts",
+            "enabled": true,
+            "propertyValues": {
                 "method": "GET",
                 "name": "a",
                 "endPoint": "https://jsonplaceholder.typicode.com/posts",
@@ -22,26 +25,38 @@
             }
         },
         {
-            "comparenumbervalues": {
+            "typename": "comparenumbervalues",
+            "name":  "Check status code",
+            "enabled": true,
+            "propertyValues": {
                 "method": "eq",
                 "value": "$(posts.StatusCode)",
                 "to": "200"
             }
         },
         {
-            "comparevalues": {
+            "typename": "comparevalues",
+            "name": "Check title",
+            "enabled": true,
+            "propertyValues": {
                 "value": "$(posts.Body[0].title)",
                 "to": "equals|true|sunt aut facere Repellat provident occaecati excepturi optio reprehenderit"
             }
         },
         {
-            "comparevalues": {
+            "typename": "comparevalues",
+            "name": "Check title # 2",
+            "enabled": true,
+            "propertyValues": {
                 "value": "$(posts.Body[2].title)",
                 "to": "contains|false|ea molestias quasi"
             }
         },
         {
-            "http": {
+            "typename": "restrequest",
+            "name": "Get post",
+            "enabled": true,
+            "propertyValues": {
                 "method": "GET",
                 "name": "b",
                 "endPoint": "https://jsonplaceholder.typicode.com/posts/$(posts.Body[1].id)",     
@@ -52,14 +67,20 @@
             }
         },
         {
-            "comparenumbervalues": {
+            "typename": "comparenumbervalues",
+            "name":  "Check status code",
+            "enabled": true,
+            "propertyValues": {
                 "method": "eq",
                 "value": "$(post.StatusCode)",
                 "to": "200"
             }
         },
         {
-            "comparevariable": {
+            "typename": "comparevariable",
+            "name": "Check title",
+            "enabled": true,
+            "propertyValues": {
                 "variableName": "post.Body.title",
                 "to": "startswith|true|Qui est esse"
             }

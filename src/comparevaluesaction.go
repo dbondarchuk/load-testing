@@ -8,17 +8,29 @@ import (
 )
 
 type CompareValuesAction struct {
-	Value      string `json:"value"`
-	Method     string `json:"method"`
-	IgnoreCase bool   `json:"ignoreCase"`
-	To         string `json:"to"`
+	Value      string        `json:"value"`
+	Method     string        `json:"method"`
+	IgnoreCase bool          `json:"ignoreCase"`
+	To         string        `json:"to"`
+	Step       TestStepValue `json:"-"`
+}
+
+func (h CompareValuesAction) GetStep() *TestStepValue {
+	return &h.Step
 }
 
 // Execute action
-func (h CompareValuesAction) Execute(resultsChannel chan HttpReqResult, variables map[string]interface{}) error {
+func (h CompareValuesAction) Execute(httpResultsChannel chan HttpReqResult, variables map[string]interface{}) error {
 	isValid := false
-	value := SubstParams(variables, h.Value)
-	to := SubstParams(variables, h.To)
+	value, err := SubstParams(variables, h.Value)
+	if err != nil {
+		return nil
+	}
+
+	to, err := SubstParams(variables, h.To)
+	if err != nil {
+		return nil
+	}
 
 	if h.IgnoreCase {
 		value = strings.ToLower(value)
@@ -72,8 +84,8 @@ func (h CompareValuesAction) Execute(resultsChannel chan HttpReqResult, variable
 	return nil
 }
 
-func NewCompareValuesAction(a map[string]interface{}) CompareValuesAction {
-	var compare = a["to"].(string)
+func NewCompareValuesAction(s TestStepValue) CompareValuesAction {
+	var compare = s.PropertyValues["to"].(string)
 
 	firstIndex := strings.Index(compare, "|")
 
@@ -86,10 +98,11 @@ func NewCompareValuesAction(a map[string]interface{}) CompareValuesAction {
 	to := leftOver[secondIndex+1 : len(leftOver)]
 
 	compareValuesAction := CompareValuesAction{
-		a["value"].(string),
+		s.PropertyValues["value"].(string),
 		method,
 		ignoreCase,
 		to,
+		s,
 	}
 
 	return compareValuesAction

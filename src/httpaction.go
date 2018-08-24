@@ -14,16 +14,22 @@ type HttpAction struct {
 	VariableName string                 `json:"variableName"`
 	TimeOut      int                    `json:"timeOut"`
 	StoreCookie  string                 `json:"storeCookie"`
+	Step         TestStepValue          `json:"-"`
 }
 
 // Execute action
-func (h HttpAction) Execute(resultsChannel chan HttpReqResult, variables map[string]interface{}) error {
-	return DoHttpRequest(h, resultsChannel, variables)
+func (h HttpAction) Execute(httpResultsChannel chan HttpReqResult, variables map[string]interface{}) error {
+	return DoHttpRequest(h, httpResultsChannel, variables)
+}
+
+func (h HttpAction) GetStep() *TestStepValue {
+	return &h.Step
 }
 
 // NewHttpAction - creates new HttpAction
-func NewHttpAction(a map[string]interface{}) HttpAction {
+func NewHttpAction(s TestStepValue) HttpAction {
 	var storeCookie string
+	a := s.PropertyValues
 	if a["storeCookie"] != nil && a["storeCookie"].(string) != "" {
 		storeCookie = a["storeCookie"].(string)
 	}
@@ -50,6 +56,7 @@ func NewHttpAction(a map[string]interface{}) HttpAction {
 		variableName,
 		timeOut,
 		storeCookie,
+		s,
 	}
 
 	return httpAction

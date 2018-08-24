@@ -7,35 +7,36 @@ import (
 
 func buildActionList(t *TestDef) ([]Action, bool) {
 	var valid = true
-	actions := make([]Action, len(t.Actions), len(t.Actions))
-	for _, element := range t.Actions {
-		for key, value := range element {
-			var action Action
-			actionMap := value
-			switch strings.ToLower(key) {
-			case "sleep":
-				action = NewSleepAction(actionMap)
-				break
-			case "http":
-				action = NewHttpAction(actionMap)
-				break
-			case "comparenumbervalues":
-				action = NewCompareNumberValuesAction(actionMap)
-				break
-			case "comparevalues":
-				action = NewCompareValuesAction(actionMap)
-				break
-			case "comparevariable":
-				action = NewCompareVariableAction(actionMap)
-				break
-			default:
-				valid = false
-				log.Fatal("Unknown action type encountered: " + key)
-				break
-			}
-			if valid {
-				actions = append(actions, action)
-			}
+	actions := make([]Action, 0, len(t.Steps))
+	for _, step := range t.Steps {
+		if !step.Enabled {
+			continue
+		}
+
+		var action Action
+		switch strings.ToLower(step.TypeName) {
+		case "sleep":
+			action = NewSleepAction(step)
+			break
+		case "restrequest":
+			action = NewHttpAction(step)
+			break
+		case "comparenumbervalues":
+			action = NewCompareNumberValuesAction(step)
+			break
+		case "comparevalues":
+			action = NewCompareValuesAction(step)
+			break
+		case "comparevariable":
+			action = NewCompareVariableAction(step)
+			break
+		default:
+			valid = false
+			log.Fatal("Unknown action type encountered: " + step.TypeName)
+			break
+		}
+		if valid {
+			actions = append(actions, action)
 		}
 	}
 	return actions, valid

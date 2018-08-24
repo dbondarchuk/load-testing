@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"regexp"
 	"strings"
 
@@ -10,7 +9,7 @@ import (
 
 var re = regexp.MustCompile("\\$\\(([a-zA-Z0-9_\\.\\[\\]]{1,})\\)")
 
-func SubstParams(dictionary map[string]interface{}, textData string) string {
+func SubstParams(dictionary map[string]interface{}, textData string) (string, error) {
 	if strings.ContainsAny(textData, "$(") {
 		res := re.FindAllStringSubmatch(textData, -1)
 		vm := otto.New()
@@ -20,14 +19,16 @@ func SubstParams(dictionary map[string]interface{}, textData string) string {
 
 		for _, v := range res {
 			value, err := vm.Run(v[1])
+
 			if err != nil {
-				log.Fatal(err)
+				return "", err
 			}
 
 			textData = strings.Replace(textData, "$("+v[1]+")", value.String(), 1)
 		}
-		return textData
+
+		return textData, nil
 	}
 
-	return textData
+	return textData, nil
 }

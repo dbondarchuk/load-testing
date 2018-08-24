@@ -22,7 +22,7 @@ import (
 )
 
 // DoHttpRequest - Accepts a Httpaction and a one-way channel to write the results to.
-func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, variables map[string]interface{}) error {
+func DoHttpRequest(httpAction HttpAction, httpResultsChannel chan HttpReqResult, variables map[string]interface{}) error {
 	req, err := buildHttpRequest(httpAction, variables)
 	if err != nil {
 		return nil
@@ -45,7 +45,9 @@ func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, var
 		log.Printf("Reading HTTP response failed: %s\n", err)
 		httpReqResult := buildHttpResult(0, req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
 
-		resultsChannel <- httpReqResult
+		httpResultsChannel <- httpReqResult
+
+		return err
 	} else {
 		defer resp.Body.Close()
 
@@ -60,9 +62,9 @@ func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, var
 
 		httpReqResult := buildHttpResult(len(responseBody), req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
 
-		processResult(httpAction, resp, variables, responseBody)
+		processResult(httpAction, resp, variables, responseBody, elapsed.Nanoseconds())
 
-		resultsChannel <- httpReqResult
+		httpResultsChannel <- httpReqResult
 	}
 
 	return nil
@@ -70,7 +72,6 @@ func DoHttpRequest(httpAction HttpAction, resultsChannel chan HttpReqResult, var
 
 func buildHttpResult(contentLength int, url string, status int, elapsed int64, name string) HttpReqResult {
 	httpReqResult := HttpReqResult{
-		"HTTP",
 		elapsed,
 		contentLength,
 		url,
@@ -85,21 +86,37 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 	var req *http.Request
 	var err error
 
+	endpoint, err := SubstParams(variables, httpAction.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+
 	if httpAction.BodyType == "raw" && httpAction.RawData != "" {
-		reader := strings.NewReader(SubstParams(variables, httpAction.RawData))
-		req, err = http.NewRequest(httpAction.Method, SubstParams(variables, httpAction.Endpoint), reader)
+		rawData, err2 := SubstParams(variables, httpAction.RawData)
+		if err2 != nil {
+			return nil, err
+		}
+
+		reader := strings.NewReader(rawData)
+		req, err = http.NewRequest(httpAction.Method, endpoint, reader)
 	} else if httpAction.BodyType == "dataform" {
 		form := url.Values{}
 
 		if httpAction.FormData != nil {
 			// Add form data
 			for key, value := range httpAction.FormData {
-				form.Add(key, SubstParams(variables, value.(string)))
+				formValue, err2 := SubstParams(variables, value.(string))
+
+				if err2 != nil {
+					return nil, err
+				}
+
+				form.Add(key, formValue)
 			}
 		}
 
 		reader := strings.NewReader(form.Encode())
-		req, err = http.NewRequest(httpAction.Method, SubstParams(variables, httpAction.Endpoint), reader)
+		req, err = http.NewRequest(httpAction.Method, endpoint, reader)
 	} else if httpAction.BodyType == "dataform" || httpAction.BodyType == "multipart" {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
@@ -107,9 +124,14 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 		if httpAction.FormData != nil {
 			// Add form data
 			for key, value := range httpAction.FormData {
-				err2 := writer.WriteField(key, SubstParams(variables, value.(string)))
+				formValue, err2 := SubstParams(variables, value.(string))
 				if err2 != nil {
 					return nil, err2
+				}
+
+				err3 := writer.WriteField(key, formValue)
+				if err3 != nil {
+					return nil, err3
 				}
 			}
 		}
@@ -137,9 +159,9 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 			}
 		}
 
-		req, err = http.NewRequest(httpAction.Method, SubstParams(variables, httpAction.Endpoint), body)
+		req, err = http.NewRequest(httpAction.Method, endpoint, body)
 	} else {
-		req, err = http.NewRequest(httpAction.Method, SubstParams(variables, httpAction.Endpoint), nil)
+		req, err = http.NewRequest(httpAction.Method, endpoint, nil)
 	}
 
 	if err != nil {
@@ -149,7 +171,12 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 	if httpAction.Headers != nil {
 		// Add headers
 		for key, value := range httpAction.Headers {
-			req.Header.Add(key, SubstParams(variables, value.(string)))
+			headerValue, err2 := SubstParams(variables, value.(string))
+			if err2 != nil {
+				return nil, err2
+			}
+
+			req.Header.Add(key, headerValue)
 		}
 	}
 
@@ -161,9 +188,14 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 				k = key[4:len(key)]
 			}
 
+			cookieValue, err2 := SubstParams(variables, value.(string))
+			if err2 != nil {
+				return nil, err2
+			}
+
 			cookie := http.Cookie{
 				Name:  k,
-				Value: SubstParams(variables, value.(string)),
+				Value: cookieValue,
 			}
 
 			req.AddCookie(&cookie)
@@ -173,7 +205,7 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 	return req, err
 }
 
-func processResult(httpAction HttpAction, response *http.Response, variables map[string]interface{}, responseBody []byte) {
+func processResult(httpAction HttpAction, response *http.Response, variables map[string]interface{}, responseBody []byte, elapsed int64) {
 	var body interface{} = nil
 	var err error
 
@@ -235,6 +267,7 @@ func processResult(httpAction HttpAction, response *http.Response, variables map
 		response.StatusCode,
 		body,
 		headers,
+		int(elapsed / 1000000),
 	}
 }
 

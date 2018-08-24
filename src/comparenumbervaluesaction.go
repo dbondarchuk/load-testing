@@ -6,15 +6,38 @@ import (
 )
 
 type CompareNumberValuesAction struct {
-	Method string `json:"method"`
-	Value  string `json:"value"`
-	To     string `json:"to"`
+	Method string        `json:"method"`
+	Value  string        `json:"value"`
+	To     string        `json:"to"`
+	Step   TestStepValue `json:"-"`
+}
+
+func (h CompareNumberValuesAction) GetStep() *TestStepValue {
+	return &h.Step
 }
 
 // Execute action
-func (h CompareNumberValuesAction) Execute(resultsChannel chan HttpReqResult, variables map[string]interface{}) error {
-	value, _ := strconv.Atoi(SubstParams(variables, h.Value))
-	to, _ := strconv.Atoi(SubstParams(variables, h.To))
+func (h CompareNumberValuesAction) Execute(httpResultsChannel chan HttpReqResult, variables map[string]interface{}) error {
+	valueStr, err := SubstParams(variables, h.Value)
+	if err != nil {
+		return nil
+	}
+
+	toStr, err := SubstParams(variables, h.To)
+	if err != nil {
+		return nil
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
+		return nil
+	}
+
+	to, err := strconv.Atoi(toStr)
+	if err != nil {
+		return nil
+	}
+
 	var isValid = false
 
 	switch method := h.Method; method {
@@ -46,11 +69,12 @@ func (h CompareNumberValuesAction) Execute(resultsChannel chan HttpReqResult, va
 	return nil
 }
 
-func NewCompareNumberValuesAction(a map[string]interface{}) CompareNumberValuesAction {
+func NewCompareNumberValuesAction(s TestStepValue) CompareNumberValuesAction {
 	compareNumberValuesAction := CompareNumberValuesAction{
-		a["method"].(string),
-		a["value"].(string),
-		a["to"].(string),
+		s.PropertyValues["method"].(string),
+		s.PropertyValues["value"].(string),
+		s.PropertyValues["to"].(string),
+		s,
 	}
 
 	return compareNumberValuesAction

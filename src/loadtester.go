@@ -37,11 +37,18 @@ func main() {
 		return
 	}
 
-	OpenResultsFile(dir + "/" + t.Id + ".json")
+	OpenResultsFiles(dir+"/"+t.Id+".result.log", dir+"/"+t.Id+".http.log")
 	spawnUsers(&t, actions)
 
-	fmt.Printf("Done in %v\n", time.Since(SimulationStart))
-	CloseResultsFile()
+	FlushResults()
+
+	elapsed := time.Since(SimulationStart)
+
+	time.Sleep(time.Duration(time.Second))
+
+	fmt.Printf("Done in %v\n", elapsed)
+
+	CloseResultsFiles()
 }
 
 func parseSpecFile() string {
@@ -61,13 +68,15 @@ func parseSpecFile() string {
 }
 
 func spawnUsers(t *TestDef, actions []Action) {
-	resultsChannel := make(chan HttpReqResult, 100000) // buffer?
-	go acceptResults(resultsChannel)
+	httpResultsChannel := make(chan HttpReqResult, 100000) // buffer?
+	resultsChannel := make(chan Result, 100000)            // buffer?
+	go aggregateResultPerSecondHandler(resultsChannel)
+	go aggregateHttpResultPerSecondHandler(httpResultsChannel)
 	wg := sync.WaitGroup{}
 	for i := 0; i < t.Users; i++ {
 		wg.Add(1)
 		UID := strconv.Itoa(rand.Intn(t.Users+1) + 100000)
-		go launchActions(t, resultsChannel, &wg, actions, UID)
+		go launchActions(t, httpResultsChannel, resultsChannel, &wg, actions, UID, i)
 		var waitDuration float32 = float32(t.Rampup) / float32(t.Users)
 		time.Sleep(time.Duration(int(1000*waitDuration)) * time.Millisecond)
 	}
@@ -75,21 +84,49 @@ func spawnUsers(t *TestDef, actions []Action) {
 	wg.Wait()
 }
 
-func launchActions(t *TestDef, resultsChannel chan HttpReqResult, wg *sync.WaitGroup, actions []Action, UID string) {
+func launchActions(t *TestDef, httpResultsChannel chan HttpReqResult, resultsChannel chan Result, wg *sync.WaitGroup, actions []Action, UID string, user int) {
 	var variables = make(map[string]interface{})
 
 	for i := 0; i < t.Iterations; i++ {
+		var startTime = time.Now()
 
 		// Make sure the variables is cleared before each iteration - except for the UID which stays
 		resetVariablesAndUID(t.Variables, UID, variables)
 
+		var errs = make(map[string]error)
+		isError := false
 		// Iterate over the actions. Note the use of the command-pattern like Execute method on the Action interface
-		for _, action := range actions {
-			if action != nil {
-				action.(Action).Execute(resultsChannel, variables)
+		for k, action := range actions {
+			step := action.GetStep()
+			if action != nil && (!isError || step.RunOnFailure) {
+				err := action.(Action).Execute(httpResultsChannel, variables)
+				if err != nil {
+					errs["#"+strconv.Itoa(k)+" '"+step.Name+"'"] = err
+					if !step.IgnoreError {
+						isError = true
+					}
+				}
 			}
 		}
+
+		var errorlist = make([]string, len(errs))
+		for name, err := range errs {
+			errorlist = append(errorlist, "Step '"+name+"' has failed with error: '"+err.Error()+"'")
+		}
+
+		var totalTime = time.Since(startTime).Nanoseconds() / 1000
+
+		result := Result{
+			user + 1,
+			i + 1,
+			isError,
+			errorlist,
+			totalTime,
+		}
+
+		resultsChannel <- result
 	}
+
 	wg.Done()
 }
 

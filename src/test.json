@@ -9,7 +9,7 @@
             "domain": "com"
         }
     },
-    "actions": [
+    "steps": [
         {
             "http": {
                 "method": "get",
