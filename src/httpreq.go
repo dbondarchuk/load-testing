@@ -51,15 +51,6 @@ func DoHttpRequest(httpAction HttpAction, httpResultsChannel chan HttpReqResult,
 	} else {
 		defer resp.Body.Close()
 
-		if httpAction.StoreCookie != "" {
-			for _, cookie := range resp.Cookies() {
-
-				if cookie.Name == httpAction.StoreCookie {
-					variables["____"+cookie.Name] = cookie.Value
-				}
-			}
-		}
-
 		httpReqResult := buildHttpResult(len(responseBody), req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
 
 		processResult(httpAction, resp, variables, responseBody, elapsed.Nanoseconds())
@@ -104,14 +95,20 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 
 		if httpAction.FormData != nil {
 			// Add form data
-			for key, value := range httpAction.FormData {
-				formValue, err2 := SubstParams(variables, value.(string))
+			for _, pair := range httpAction.FormData {
+				formKey, err2 := SubstParams(variables, pair.Key)
 
 				if err2 != nil {
-					return nil, err
+					return nil, err2
 				}
 
-				form.Add(key, formValue)
+				formValue, err2 := SubstParams(variables, pair.Value)
+
+				if err2 != nil {
+					return nil, err2
+				}
+
+				form.Add(formKey, formValue)
 			}
 		}
 
@@ -123,13 +120,18 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 
 		if httpAction.FormData != nil {
 			// Add form data
-			for key, value := range httpAction.FormData {
-				formValue, err2 := SubstParams(variables, value.(string))
+			for _, pair := range httpAction.FormData {
+				formKey, err2 := SubstParams(variables, pair.Key)
 				if err2 != nil {
 					return nil, err2
 				}
 
-				err3 := writer.WriteField(key, formValue)
+				formValue, err2 := SubstParams(variables, pair.Value)
+				if err2 != nil {
+					return nil, err2
+				}
+
+				err3 := writer.WriteField(formKey, formValue)
 				if err3 != nil {
 					return nil, err3
 				}
@@ -137,15 +139,25 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 		}
 
 		if httpAction.Files != nil && len(httpAction.Files) > 0 {
-			for key, path := range httpAction.Files {
-				file, err2 := os.Open(path.(string))
+			for _, pair := range httpAction.Files {
+				fileKey, err2 := SubstParams(variables, pair.Key)
+				if err2 != nil {
+					return nil, err2
+				}
+
+				filePath, err2 := SubstParams(variables, pair.Value)
+				if err2 != nil {
+					return nil, err2
+				}
+
+				file, err2 := os.Open(filePath)
 				if err2 != nil {
 					return nil, err2
 				}
 
 				defer file.Close()
 
-				part, err2 := writer.CreateFormFile(key, filepath.Base(path.(string)))
+				part, err2 := writer.CreateFormFile(fileKey, filepath.Base(filePath))
 				if err2 != nil {
 					return nil, err2
 				}
@@ -170,31 +182,36 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 
 	if httpAction.Headers != nil {
 		// Add headers
-		for key, value := range httpAction.Headers {
-			headerValue, err2 := SubstParams(variables, value.(string))
+		for _, pair := range httpAction.Headers {
+			headerKey, err2 := SubstParams(variables, pair.Key)
 			if err2 != nil {
 				return nil, err2
 			}
 
-			req.Header.Add(key, headerValue)
+			headerValue, err2 := SubstParams(variables, pair.Value)
+			if err2 != nil {
+				return nil, err2
+			}
+
+			req.Header.Add(headerKey, headerValue)
 		}
 	}
 
 	if httpAction.Cookies != nil {
 		// Add cookies
-		for key, value := range httpAction.Cookies {
-			k := key
-			if strings.HasPrefix(key, "____") {
-				k = key[4:len(key)]
+		for _, pair := range httpAction.Cookies {
+			cookieKey, err2 := SubstParams(variables, pair.Key)
+			if err2 != nil {
+				return nil, err2
 			}
 
-			cookieValue, err2 := SubstParams(variables, value.(string))
+			cookieValue, err2 := SubstParams(variables, pair.Value)
 			if err2 != nil {
 				return nil, err2
 			}
 
 			cookie := http.Cookie{
-				Name:  k,
+				Name:  cookieKey,
 				Value: cookieValue,
 			}
 

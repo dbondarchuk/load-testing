@@ -1,20 +1,24 @@
 package main
 
+import (
+	"encoding/json"
+	"strings"
+)
+
 // HttpAction type for info about running http request
 type HttpAction struct {
-	Method       string                 `json:"method"`
-	Endpoint     string                 `json:"endPoint"`
-	BodyType     string                 `json:"bodyType"`
-	RawData      string                 `json:"rawData"`
-	FormData     map[string]interface{} `json:"formData"`
-	Files        map[string]interface{} `json:"files"`
-	Headers      map[string]interface{} `json:"headers"`
-	Cookies      map[string]interface{} `json:"cookies"`
-	Name         string                 `json:"name"`
-	VariableName string                 `json:"variableName"`
-	TimeOut      int                    `json:"timeOut"`
-	StoreCookie  string                 `json:"storeCookie"`
-	Step         TestStepValue          `json:"-"`
+	Method       string         `json:"method"`
+	Endpoint     string         `json:"endPoint"`
+	BodyType     string         `json:"bodyType"`
+	RawData      string         `json:"rawData"`
+	FormData     []KeyValuePair `json:"formData"`
+	Files        []KeyValuePair `json:"files"`
+	Headers      []KeyValuePair `json:"headers"`
+	Cookies      []KeyValuePair `json:"cookies"`
+	Name         string         `json:"name"`
+	VariableName string         `json:"variableName"`
+	TimeOut      int            `json:"timeOut"`
+	Step         TestStepValue  `json:"-"`
 }
 
 // Execute action
@@ -28,23 +32,34 @@ func (h HttpAction) GetStep() *TestStepValue {
 
 // NewHttpAction - creates new HttpAction
 func NewHttpAction(s TestStepValue) HttpAction {
-	var storeCookie string
 	a := s.PropertyValues
-	if a["storeCookie"] != nil && a["storeCookie"].(string) != "" {
-		storeCookie = a["storeCookie"].(string)
-	}
 
 	bodyType, _ := a["bodyType"].(string)
 	rawData, _ := a["rawData"].(string)
 	variableName, _ := a["variableName"].(string)
 	timeOut, _ := a["timeOut"].(int)
-	formData, _ := a["formData"].(map[string]interface{})
-	files, _ := a["files"].(map[string]interface{})
-	headers, _ := a["headers"].(map[string]interface{})
-	cookies, _ := a["cookies"].(map[string]interface{})
+
+	var formData []KeyValuePair
+	formDataJson, _ := json.Marshal(a["formData"])
+	err := json.Unmarshal(formDataJson, &formData)
+
+	var files []KeyValuePair
+	filesJson, _ := json.Marshal(a["files"])
+	err = json.Unmarshal(filesJson, &files)
+
+	var headers []KeyValuePair
+	headersJson, _ := json.Marshal(a["headers"])
+	err = json.Unmarshal(headersJson, &headers)
+
+	var cookies []KeyValuePair
+	cookiesJson, _ := json.Marshal(a["cookies"])
+	err = json.Unmarshal(cookiesJson, &cookies)
+
+	if err != nil {
+	}
 
 	httpAction := HttpAction{
-		a["method"].(string),
+		strings.ToUpper(a["method"].(string)),
 		a["endPoint"].(string),
 		bodyType,
 		rawData,
@@ -52,10 +67,9 @@ func NewHttpAction(s TestStepValue) HttpAction {
 		files,
 		headers,
 		cookies,
-		a["name"].(string),
+		s.Name,
 		variableName,
 		timeOut,
-		storeCookie,
 		s,
 	}
 

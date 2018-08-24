@@ -101,7 +101,7 @@ func launchActions(t *TestDef, httpResultsChannel chan HttpReqResult, resultsCha
 			if action != nil && (!isError || step.RunOnFailure) {
 				err := action.(Action).Execute(httpResultsChannel, variables)
 				if err != nil {
-					errs["#"+strconv.Itoa(k)+" '"+step.Name+"'"] = err
+					errs["#"+strconv.Itoa(k+1)+" '"+step.Name+"'"] = err
 					if !step.IgnoreError {
 						isError = true
 					}
@@ -119,7 +119,7 @@ func launchActions(t *TestDef, httpResultsChannel chan HttpReqResult, resultsCha
 		result := Result{
 			user + 1,
 			i + 1,
-			isError,
+			!isError,
 			errorlist,
 			totalTime,
 		}
