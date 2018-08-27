@@ -37,13 +37,25 @@
             }
         },
         {
+            "typeName": "randomnumbervalue",
+            "name": "Get number",
+            "enabled": true,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "min": "0",
+                "max": "$(posts.Body.length)",
+                "variableName": "randomNum"
+            }
+        },
+        {
             "typeName": "CompareValues",
             "name": "Check title",
             "enabled": true,
             "ignoreError": false,
             "runOnFailure": false,
             "propertyValues": {
-                "value": "$(posts.Body[0].title)",
+                "value": "$(posts.Body[randomNum].title)",
                 "to": "equals|true|sunt aut facere Repellat provident occaecati excepturi optio reprehenderit"
             }
         },

@@ -30,6 +30,12 @@ func buildActionList(t *TestDef) ([]Action, bool) {
 		case "comparevariable":
 			action = NewCompareVariableAction(step)
 			break
+		case "randomnumbervalue":
+			action = NewRandomNumberValueAction(step)
+			break
+		case "randomstringvalue":
+			action = NewRandomStringValueAction(step)
+			break
 		default:
 			valid = false
 			log.Fatal("Unknown action type encountered: " + step.TypeName)
