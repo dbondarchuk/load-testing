@@ -109,9 +109,11 @@ func launchActions(t *TestDef, httpResultsChannel chan HttpReqResult, resultsCha
 			}
 		}
 
-		var errorlist = make([]string, len(errs))
+		errorlist := make([]string, len(errs))
+		k := 0
+
 		for name, err := range errs {
-			errorlist = append(errorlist, "Step '"+name+"' has failed with error: '"+err.Error()+"'")
+			errorlist[k], k = "Step '"+name+"' has failed with error: '"+err.Error()+"'", k+1
 		}
 
 		var totalTime = time.Since(startTime).Nanoseconds() / 1000

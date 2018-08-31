@@ -2,7 +2,7 @@
     "id": "1eebd788-ca24-41e4-947a-70bf796cfde6",
     "usersCount": 1000,
     "loopCount": 5,
-    "rampup": 20,
+    "rampup": 10,
     "steps": [
         {
             "typeName": "RestRequest",

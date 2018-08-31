@@ -48,14 +48,18 @@ func aggregateHttpResultPerSecondHandler(httpResultPerSecondChannel chan HttpReq
 		var totalReq int = 0
 		var totalLatency int = 0
 
-		var byStatus = make(map[int]int)
+		var byStatus = make(map[string]map[int]int)
 
 		until := time.Now().UnixNano() + 1000000000
 
 		for time.Now().UnixNano() < until {
 			select {
 			case httpMsg := <-httpResultPerSecondChannel:
-				byStatus[httpMsg.Status]++
+				if byStatus[httpMsg.Url] == nil {
+					byStatus[httpMsg.Url] = make(map[int]int)
+				}
+
+				byStatus[httpMsg.Url][httpMsg.Status]++
 				totalReq++
 				totalLatency += int(httpMsg.Latency / 1000) // measure in microseconds
 
@@ -88,7 +92,7 @@ func assembleAndSendResult(results []*Result) {
 	writeResult(results)
 }
 
-func assembleAndSendHttpResult(totalReq int, totalLatency int, byStatus map[int]int) {
+func assembleAndSendHttpResult(totalReq int, totalLatency int, byStatus map[string]map[int]int) {
 	avgLatency := 0
 	if totalReq > 0 {
 		avgLatency = totalLatency / totalReq
