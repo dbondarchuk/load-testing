@@ -25,7 +25,7 @@ import (
 func DoHttpRequest(httpAction HttpAction, httpResultsChannel chan HttpReqResult, variables map[string]interface{}) error {
 	req, err := buildHttpRequest(httpAction, variables)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	start := time.Now()
