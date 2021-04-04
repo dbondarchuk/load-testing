@@ -1,0 +1,122 @@
+{
+    "usersCount": 1000,
+    "loopCount": 5,
+    "rampup": 20,
+    "steps": [
+        {
+            "typeName": "RestRequest",
+            "name": "Get posts",
+            "enabled": true,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "endPoint": "https://jsonplaceholder.typicode.com/posts",
+                "method": "get",
+                "headers": [
+                    {
+                        "key": "content-type",
+                        "value": "application/json"
+                    }
+                ],
+                "cookies": [],
+                "variableName": "posts",
+                "timeOut": 60.0
+            }
+        },
+        {
+            "typeName": "CompareNumberValues",
+            "name": "Check status code",
+            "enabled": true,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "value": "$(posts.StatusCode)",
+                "method": "eq",
+                "to": "200"
+            }
+        },
+        {
+            "typeName": "CompareValues",
+            "name": "Check title",
+            "enabled": true,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "value": "$(posts.Body[0].title)",
+                "method": "equals",
+                "ignoreCase": true,
+                "to": "sunt aut facere Repellat provident occaecati excepturi optio reprehenderit"
+            }
+        },
+        {
+            "typeName": "CompareValues",
+            "name": "Check title # 2",
+            "enabled": true,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "value": "$(posts.Body[2].title)",
+                "method": "contains",
+                "ignoreCase": false,
+                "to": "ea molestias quasi"
+            }
+        },
+        {
+            "typeName": "RandomNumberValue",
+            "name": "Random num",
+            "enabled": true,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "variableName": "random",
+                "min": "1",
+                "max": "$(posts.Body.length)"
+            }
+        },
+        {
+            "typeName": "RestRequest",
+            "name": "Get post",
+            "enabled": true,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "endPoint": "https://jsonplaceholder.typicode.com/posts/$(random)",
+                "method": "get",
+                "headers": [
+                    {
+                        "key": "content-type",
+                        "value": "application/json"
+                    }
+                ],
+                "cookies": [],
+                "variableName": "post",
+                "timeOut": 60.0
+            }
+        },
+        {
+            "typeName": "CompareNumberValues",
+            "name": "Check status code",
+            "enabled": true,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "value": "$(post.StatusCode)",
+                "method": "eq",
+                "to": "200"
+            }
+        },
+        {
+            "typeName": "CompareVariable",
+            "name": "Check title",
+            "enabled": false,
+            "ignoreError": false,
+            "runOnFailure": false,
+            "propertyValues": {
+                "variableName": "post.Body.title",
+                "method": "startsWith",
+                "ignoreCase": true,
+                "to": "Qui est esse"
+            }
+        }
+    ]
+}

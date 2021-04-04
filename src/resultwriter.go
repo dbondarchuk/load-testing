@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -20,15 +21,16 @@ var httpResults []*StatFrame
 
 var opened bool = false
 
-func OpenResultsFiles(resultFileName string, httpResultFileName string) {
+func OpenResultsFiles(resultDir string, resultFileName string, httpResultFileName string) {
 	if !opened {
 		opened = true
 	} else {
 		return
 	}
 
-	openFile(resultFileName, &resultFile, &resultWriter)
-	openFile(httpResultFileName, &httpResultFile, &httpResultWriter)
+	os.MkdirAll(resultDir, os.ModePerm)
+	openFile(filepath.Join(resultDir, resultFileName), &resultFile, &resultWriter)
+	openFile(filepath.Join(resultDir, httpResultFileName), &httpResultFile, &httpResultWriter)
 }
 
 func CloseResultsFiles() {
@@ -62,8 +64,6 @@ func writeResult(results []*Result) {
 func openFile(fileName string, file **os.File, writer **bufio.Writer) {
 	*file, err = os.Create(fileName)
 	if err != nil {
-		os.Mkdir("results", 0777)
-		os.Mkdir("results/log", 0777)
 		*file, err = os.Create(fileName)
 		if err != nil {
 			panic(err)

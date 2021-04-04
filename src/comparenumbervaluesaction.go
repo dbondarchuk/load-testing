@@ -53,6 +53,10 @@ func (h CompareNumberValuesAction) Execute(httpResultsChannel chan HttpReqResult
 		isValid = value == to
 		break
 
+	case "ne":
+		isValid = value != to
+		break
+
 	case "gt":
 		isValid = value > to
 		break

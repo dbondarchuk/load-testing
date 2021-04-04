@@ -2,7 +2,7 @@
 
 package=$1
 if [[ -z "$package" ]]; then
-  echo "usage: $0 <package-name>"
+  echo "usage: $0 <package-name> [platform]"
   exit 1
 fi
 
@@ -13,8 +13,20 @@ if [[ $package = *"/"* ]]; then
     package_name=${package_split[-1]}
 fi
 
-platforms=("windows/amd64" "windows/386" "darwin/amd64" "linux/amd64" "linux/386")
+supported_platforms=("windows/amd64" "windows/386" "darwin/amd64" "linux/amd64" "linux/386")
+platforms=()
+expectedPlatform=$2
+if [[ -z "$expectedPlatform" ]]; then
+    echo "Build was requested for all supported platforms: ${supported_platforms[@]}"
+    platforms=("${supported_platforms[@]}")
+elif [[ ! " ${supported_platforms[@]} " =~ " ${expectedPlatform} " ]]; then
+    echo "Unknown platform: $expectedPlatform. Supported platforms: ${supported_platforms[@]}."
+    exit 2
+else
+    platforms=("$expectedPlatform")
+fi
 
+pushd src > /dev/null
 for platform in "${platforms[@]}"
 do
     platform_split=(${platform//\// })
@@ -23,7 +35,7 @@ do
     output_name=$package_name
 
     if  [ $GOOS = "darwin" ]; then 
-        output_name+="MacOsX"
+        output_name+="-MacOsX"
     fi
 
     if [ $GOARCH = "amd64" ]; then
@@ -38,15 +50,21 @@ do
         output_name+='.exe'
     fi  
 
-    cd src
+    output_file="../output/$output_name"
+    
+    echo "Building package $package_name for platform $platform. Output filename: $output_file."
 
     env GOOS=$GOOS GOARCH=$GOARCH go get
 
-    env GOOS=$GOOS GOARCH=$GOARCH go build -o "../output/$output_name"
+    env GOOS=$GOOS GOARCH=$GOARCH go build -o "$output_file"
+
     if [ $? -ne 0 ]; then
         echo 'An error has occurred! Aborting the script execution...'
-        exit 1
+        popd > /dev/null
+        exit -1
     fi
 
-    cd ..
+    echo "Package for platform $platform was successfully built."
 done
+
+popd > /dev/null

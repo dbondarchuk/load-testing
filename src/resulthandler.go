@@ -88,7 +88,7 @@ func assembleAndSendResult(results []*Result) {
 	totalLoopsDone += len(results)
 
 	time.Sleep(50 * time.Microsecond)
-	fmt.Printf("Time: %d Loops done: %d Total loops done: %d\n", timePassed, len(results), totalLoopsDone)
+	fmt.Printf("Second: %d. Loops done: %d. Total loops done: %d\n", timePassed, len(results), totalLoopsDone)
 	writeResult(results)
 }
 
@@ -111,6 +111,6 @@ func assembleAndSendHttpResult(totalReq int, totalLatency int, byStatus map[stri
 		totalReq,
 		byStatus,
 	}
-	fmt.Printf("Time: %d Avg latency: %d μs (%d ms) req/s: %d\n", statFrame.Time, statFrame.Latency, statFrame.Latency/1000, statFrame.Reqs)
+	fmt.Printf("Second: %d. Avg latency: %d μs (%d ms). req/s: %d\n", statFrame.Time, statFrame.Latency, statFrame.Latency/1000, statFrame.Reqs)
 	writeHttpResult(&statFrame)
 }

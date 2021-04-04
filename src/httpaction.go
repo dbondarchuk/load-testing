@@ -15,7 +15,6 @@ type HttpAction struct {
 	Files        []KeyValuePair `json:"files"`
 	Headers      []KeyValuePair `json:"headers"`
 	Cookies      []KeyValuePair `json:"cookies"`
-	Name         string         `json:"name"`
 	VariableName string         `json:"variableName"`
 	TimeOut      int            `json:"timeOut"`
 	Step         TestStepValue  `json:"-"`
@@ -67,7 +66,6 @@ func NewHttpAction(s TestStepValue) HttpAction {
 		files,
 		headers,
 		cookies,
-		s.Name,
 		variableName,
 		timeOut,
 		s,

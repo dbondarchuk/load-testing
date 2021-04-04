@@ -12,3 +12,7 @@
 *.out
 /src/debug
 /src/*.log
+
+output/
+results/
+*.log

@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -85,23 +84,11 @@ func (h CompareVariableAction) Execute(httpResultsChannel chan HttpReqResult, va
 }
 
 func NewCompareVariableAction(s TestStepValue) CompareVariableAction {
-	var compare = s.PropertyValues["to"].(string)
-
-	firstIndex := strings.Index(compare, "|")
-
-	method := compare[0:firstIndex]
-	leftOver := compare[firstIndex+1 : len(compare)]
-
-	secondIndex := strings.Index(leftOver, "|")
-	ignoreCase, _ := strconv.ParseBool(leftOver[0:secondIndex])
-
-	to := leftOver[secondIndex+1 : len(leftOver)]
-
 	compareVariableAction := CompareVariableAction{
 		s.PropertyValues["variableName"].(string),
-		method,
-		ignoreCase,
-		to,
+		s.PropertyValues["method"].(string),
+		s.PropertyValues["ignoreCase"].(bool),
+		s.PropertyValues["to"].(string),
 		s,
 	}
 

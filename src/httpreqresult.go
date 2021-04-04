@@ -5,6 +5,5 @@ type HttpReqResult struct {
 	Size    int
 	Url     string
 	Status  int
-	Name    string
 	When    int64
 }

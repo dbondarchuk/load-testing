@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -14,19 +14,36 @@ import (
 var SimulationStart time.Time
 
 func main() {
+	inputFilePtr := flag.String("i", "input.json", "Input file with test")
+	idPtr := flag.String("id", "", "Id of the test")
+	outputDirPtr := flag.String("o", ".", "Output dir for the logs")
 
-	spec := parseSpecFile()
+	flag.Parse()
+
+	if *idPtr == "" {
+		fmt.Printf("Please specify ID of the test")
+		return
+	}
 
 	// defer profile.Start(profile.CPUProfile).Stop()
 
 	// Start the web socket server, will not block exit until forced
 
 	SimulationStart = time.Now()
-	dir, _ := os.Getwd()
-	dat, _ := ioutil.ReadFile(dir + "/" + spec)
+	dat, inputError := ioutil.ReadFile(*inputFilePtr)
+	if inputError != nil {
+		fmt.Print(inputError.Error())
+		return
+	}
 
 	var t TestDef
 	json.Unmarshal([]byte(dat), &t)
+
+	t.Id = *idPtr
+
+	if t.Variables == nil {
+		t.Variables = make(map[string]interface{})
+	}
 
 	if !ValidateTestDefinition(&t) {
 		return
@@ -37,7 +54,7 @@ func main() {
 		return
 	}
 
-	OpenResultsFiles(dir+"/"+t.Id+".result.log", dir+"/"+t.Id+".http.log")
+	OpenResultsFiles(*outputDirPtr, t.Id+".result.log", t.Id+".http.log")
 	spawnUsers(&t, actions)
 
 	FlushResults()
@@ -49,22 +66,6 @@ func main() {
 	fmt.Printf("Done in %v\n", elapsed)
 
 	CloseResultsFiles()
-}
-
-func parseSpecFile() string {
-	if len(os.Args) == 1 {
-		fmt.Errorf("No command line arguments, exiting...\n")
-		panic("Cannot start simulation, no JSON simulaton specification supplied as command-line argument")
-	}
-	var s, sep string
-	for i := 1; i < len(os.Args); i++ {
-		s += sep + os.Args[i]
-		sep = " "
-	}
-	if s == "" {
-		panic(fmt.Sprintf("Specified simulation file '%s' is not a .json file", s))
-	}
-	return s
 }
 
 func spawnUsers(t *TestDef, actions []Action) {
@@ -133,8 +134,8 @@ func launchActions(t *TestDef, httpResultsChannel chan HttpReqResult, resultsCha
 }
 
 func resetVariablesAndUID(original map[string]interface{}, UID string, variables map[string]interface{}) {
-	b, e := json.Marshal(original)
-	e = json.Unmarshal(b, &variables)
+	b, _ := json.Marshal(original)
+	e := json.Unmarshal(b, &variables)
 
 	if e == nil {
 		variables["UID"] = UID

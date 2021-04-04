@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -46,7 +45,7 @@ func (h CompareValuesAction) Execute(httpResultsChannel chan HttpReqResult, vari
 		isValid = strings.HasPrefix(value, to)
 		break
 
-	case "endswitheq":
+	case "endswith":
 		isValid = strings.HasSuffix(value, to)
 		break
 
@@ -54,19 +53,19 @@ func (h CompareValuesAction) Execute(httpResultsChannel chan HttpReqResult, vari
 		isValid = strings.Contains(value, to)
 		break
 
-	case "notequal":
+	case "notequals":
 		isValid = value != to
 		break
 
-	case "notstartwith":
+	case "notstartswith":
 		isValid = !strings.HasPrefix(value, to)
 		break
 
-	case "notendwith":
+	case "notendswith":
 		isValid = !strings.HasSuffix(value, to)
 		break
 
-	case "notcontain":
+	case "notcontains":
 		isValid = !strings.Contains(value, to)
 		break
 
@@ -85,23 +84,11 @@ func (h CompareValuesAction) Execute(httpResultsChannel chan HttpReqResult, vari
 }
 
 func NewCompareValuesAction(s TestStepValue) CompareValuesAction {
-	var compare = s.PropertyValues["to"].(string)
-
-	firstIndex := strings.Index(compare, "|")
-
-	method := compare[0:firstIndex]
-	leftOver := compare[firstIndex+1 : len(compare)]
-
-	secondIndex := strings.Index(leftOver, "|")
-	ignoreCase, _ := strconv.ParseBool(leftOver[0:secondIndex])
-
-	to := leftOver[secondIndex+1 : len(leftOver)]
-
 	compareValuesAction := CompareValuesAction{
 		s.PropertyValues["value"].(string),
-		method,
-		ignoreCase,
-		to,
+		s.PropertyValues["method"].(string),
+		s.PropertyValues["ignoreCase"].(bool),
+		s.PropertyValues["to"].(string),
 		s,
 	}
 

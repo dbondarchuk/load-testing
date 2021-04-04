@@ -43,7 +43,7 @@ func DoHttpRequest(httpAction HttpAction, httpResultsChannel chan HttpReqResult,
 	if err != nil {
 		//log.Fatal(err)
 		log.Printf("Reading HTTP response failed: %s\n", err)
-		httpReqResult := buildHttpResult(0, req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
+		httpReqResult := buildHttpResult(0, req.URL.String(), resp.StatusCode, elapsed.Nanoseconds())
 
 		httpResultsChannel <- httpReqResult
 
@@ -51,7 +51,7 @@ func DoHttpRequest(httpAction HttpAction, httpResultsChannel chan HttpReqResult,
 	} else {
 		defer resp.Body.Close()
 
-		httpReqResult := buildHttpResult(len(responseBody), req.URL.String(), resp.StatusCode, elapsed.Nanoseconds(), httpAction.Name)
+		httpReqResult := buildHttpResult(len(responseBody), req.URL.String(), resp.StatusCode, elapsed.Nanoseconds())
 
 		processResult(httpAction, resp, variables, responseBody, elapsed.Nanoseconds())
 
@@ -61,13 +61,12 @@ func DoHttpRequest(httpAction HttpAction, httpResultsChannel chan HttpReqResult,
 	return nil
 }
 
-func buildHttpResult(contentLength int, url string, status int, elapsed int64, name string) HttpReqResult {
+func buildHttpResult(contentLength int, url string, status int, elapsed int64) HttpReqResult {
 	httpReqResult := HttpReqResult{
 		elapsed,
 		contentLength,
 		url,
 		status,
-		name,
 		time.Since(SimulationStart).Nanoseconds(),
 	}
 	return httpReqResult
@@ -114,7 +113,7 @@ func buildHttpRequest(httpAction HttpAction, variables map[string]interface{}) (
 
 		reader := strings.NewReader(form.Encode())
 		req, err = http.NewRequest(httpAction.Method, endpoint, reader)
-	} else if httpAction.BodyType == "dataform" || httpAction.BodyType == "multipart" {
+	} else if httpAction.BodyType == "multipart" {
 		body := &bytes.Buffer{}
 		writer := multipart.NewWriter(body)
 
@@ -280,11 +279,13 @@ func processResult(httpAction HttpAction, response *http.Response, variables map
 		headers[name] = value[0]
 	}
 
-	variables[httpAction.VariableName] = HttpResponseObject{
-		response.StatusCode,
-		body,
-		headers,
-		int(elapsed / 1000000),
+	if len(httpAction.VariableName) > 0 {
+		variables[httpAction.VariableName] = HttpResponseObject{
+			response.StatusCode,
+			body,
+			headers,
+			int(elapsed / 1000000),
+		}
 	}
 }
 
