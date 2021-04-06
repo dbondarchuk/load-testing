@@ -1,3 +1,5 @@
+![Build Status](https://github.com/dbondarchuk/load-testing/actions/workflows/go.yml/badge.svg)
+
 # Introduction 
 
 **Load tester** is a simple tool created for easy load testing HTTP endpoints focused on response time and verifying expected results.
