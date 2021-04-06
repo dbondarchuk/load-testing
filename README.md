@@ -15,9 +15,17 @@ What it can do:
 
 To start using the tool, download the latest binaries for your OS from the 'Releases' section on GitHub. This tools supports Windows (x86/x64), Linux (x86/x64) and MacOS (x64).
 To run the test, execute following command in your terminal:
-`load-tester -i TEST_FILE -id TEST_ID -o OUTPUT_FOLDER`
+`load-tester -i TEST_FILE -id TEST_ID -o OUTPUT_FOLDER -t TOLERANCE_PERCENTAGE`
 
-Learn about writing a test file definition [here](docs/writing-test.md) or have a look into the [example file](examples/input.json)
+Where
+|Argument|Type|Description|
+|---|---|---|
+|TEST_FILE|string|Path to the JSON file containing test definition|
+|TEST_ID|string|Random id to be given for the test and used in output files' name|
+|OUTPUT_FOLDER|string|Path to the directory where results files will be saved|
+|TOLERANCE_PERCENTAGE|float|Percentage of failed loops, which can be tolerated. i.e `-t 3.5` means that if 3.5% or less of loops have failed, the test will be marked successful. To fail the test on any error - omit this argument or set it to `0`|
+
+Learn about writing a test file definition [here](docs/writing-test.md) or have a look at the [example file](examples/input.json)
 
 Learn about results produced by this application [here](docs/reading-results.md)
 

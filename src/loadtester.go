@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -17,12 +18,13 @@ func main() {
 	inputFilePtr := flag.String("i", "input.json", "Input file with test")
 	idPtr := flag.String("id", "", "Id of the test")
 	outputDirPtr := flag.String("o", ".", "Output dir for the logs")
+	tolerancePercentage := flag.Float64("t", 0, "Maximum percentage of tolerated failed steps")
 
 	flag.Parse()
 
 	if *idPtr == "" {
 		fmt.Printf("Please specify ID of the test")
-		return
+		os.Exit(1)
 	}
 
 	// defer profile.Start(profile.CPUProfile).Stop()
@@ -33,7 +35,7 @@ func main() {
 	dat, inputError := ioutil.ReadFile(*inputFilePtr)
 	if inputError != nil {
 		fmt.Print(inputError.Error())
-		return
+		os.Exit(2)
 	}
 
 	var t TestDef
@@ -46,16 +48,16 @@ func main() {
 	}
 
 	if !ValidateTestDefinition(&t) {
-		return
+		os.Exit(3)
 	}
 
 	actions, isValid := buildActionList(&t)
 	if !isValid {
-		return
+		os.Exit(4)
 	}
 
 	OpenResultsFiles(*outputDirPtr, t.Id+".result.log", t.Id+".http.log")
-	spawnUsers(&t, actions)
+	var failedLoops = spawnUsers(&t, actions)
 
 	FlushResults()
 
@@ -63,29 +65,44 @@ func main() {
 
 	time.Sleep(time.Duration(time.Second))
 
+	totalLoops := t.Users * t.Iterations
+
+	fmt.Printf("Total tests: %d. Failed tests: %d\n", totalLoops, failedLoops)
 	fmt.Printf("Done in %v\n", elapsed)
 
 	CloseResultsFiles()
+
+	failPercentage := float64(failedLoops) / float64(totalLoops) * 100.0
+	fmt.Printf("Tolerance percentage: %.3f. Fail percentage: %.3f\n", *tolerancePercentage, failPercentage)
+	if failPercentage > *tolerancePercentage {
+		fmt.Println("Test has failed")
+		os.Exit(-1)
+	}
 }
 
-func spawnUsers(t *TestDef, actions []Action) {
+func spawnUsers(t *TestDef, actions []Action) int {
 	httpResultsChannel := make(chan HttpReqResult, 100000) // buffer?
 	resultsChannel := make(chan Result, 100000)            // buffer?
 	go aggregateResultPerSecondHandler(resultsChannel)
 	go aggregateHttpResultPerSecondHandler(httpResultsChannel)
 	wg := sync.WaitGroup{}
+
+	totalFailedLoops := 0
+
 	for i := 0; i < t.Users; i++ {
 		wg.Add(1)
 		UID := strconv.Itoa(rand.Intn(t.Users+1) + 100000)
-		go launchActions(t, httpResultsChannel, resultsChannel, &wg, actions, UID, i)
+		go launchActions(t, httpResultsChannel, resultsChannel, &wg, actions, UID, i, &totalFailedLoops)
 		var waitDuration float32 = float32(t.Rampup) / float32(t.Users)
 		time.Sleep(time.Duration(int(1000*waitDuration)) * time.Millisecond)
 	}
 	fmt.Println("All users started, waiting at WaitGroup")
 	wg.Wait()
+
+	return totalFailedLoops
 }
 
-func launchActions(t *TestDef, httpResultsChannel chan HttpReqResult, resultsChannel chan Result, wg *sync.WaitGroup, actions []Action, UID string, user int) {
+func launchActions(t *TestDef, httpResultsChannel chan HttpReqResult, resultsChannel chan Result, wg *sync.WaitGroup, actions []Action, UID string, user int, totalFailedLoops *int) {
 	var variables = make(map[string]interface{})
 
 	for i := 0; i < t.Iterations; i++ {
@@ -115,6 +132,10 @@ func launchActions(t *TestDef, httpResultsChannel chan HttpReqResult, resultsCha
 
 		for name, err := range errs {
 			errorlist[k], k = "Step '"+name+"' has failed with error: '"+err.Error()+"'", k+1
+		}
+
+		if k > 0 {
+			(*totalFailedLoops)++
 		}
 
 		var totalTime = time.Since(startTime).Nanoseconds() / 1000
